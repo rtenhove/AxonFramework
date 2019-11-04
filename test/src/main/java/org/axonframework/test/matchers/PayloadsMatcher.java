@@ -16,7 +16,7 @@
 
 package org.axonframework.test.matchers;
 
-import org.axonframework.domain.Message;
+import org.axonframework.messaging.Message;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -30,11 +30,11 @@ import java.util.List;
  * @author Allard Buijze
  * @since 2.0
  */
-public class PayloadsMatcher extends BaseMatcher<List<? extends Message<?>>> {
+public class PayloadsMatcher extends BaseMatcher<List<Message<?>>> {
     private final Matcher<? extends Iterable<?>> matcher;
 
     /**
-     * Constructs an instance that uses the given <code>matcher</code> to match the payloads.
+     * Constructs an instance that uses the given {@code matcher} to match the payloads.
      *
      * @param matcher             The matcher to match the payloads with
      */
@@ -47,7 +47,7 @@ public class PayloadsMatcher extends BaseMatcher<List<? extends Message<?>>> {
         if (!List.class.isInstance(item)) {
             return false;
         }
-        List<Object> payloads = new ArrayList<Object>();
+        List<Object> payloads = new ArrayList<>();
         for (Object listItem : (List) item) {
             if (Message.class.isInstance(listItem)) {
                 payloads.add(((Message) listItem).getPayload());
@@ -60,7 +60,7 @@ public class PayloadsMatcher extends BaseMatcher<List<? extends Message<?>>> {
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("List with EventMessages with Payloads matching <");
+        description.appendText("List with Messages with Payloads matching <");
         matcher.describeTo(description);
         description.appendText(">");
     }

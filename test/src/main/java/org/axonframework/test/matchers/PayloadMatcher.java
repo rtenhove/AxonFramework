@@ -16,7 +16,7 @@
 
 package org.axonframework.test.matchers;
 
-import org.axonframework.domain.Message;
+import org.axonframework.messaging.Message;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -33,7 +33,7 @@ public class PayloadMatcher<T extends Message> extends BaseMatcher<T> {
     private final Matcher<?> payloadMatcher;
 
     /**
-     * Constructs an instance with the given <code>payloadMatcher</code>.
+     * Constructs an instance with the given {@code payloadMatcher}.
      *
      * @param payloadMatcher The matcher that must match the Message's payload.
      */

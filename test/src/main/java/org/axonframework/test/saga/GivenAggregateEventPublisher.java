@@ -26,9 +26,8 @@ package org.axonframework.test.saga;
 public interface GivenAggregateEventPublisher {
 
     /**
-     * Register the given <code>events</code> as being published somewhere in the past. These events are used to
-     * prepare
-     * the state of Sagas listening to them. Any commands or events sent out by the saga as reaction to these events is
+     * Register the given {@code events} as being published somewhere in the past. These events are used to prepare the
+     * state of Sagas listening to them. Any commands or events sent out by the saga as reaction to these events is
      * ignored.
      *
      * @param events The events published by the aggregate

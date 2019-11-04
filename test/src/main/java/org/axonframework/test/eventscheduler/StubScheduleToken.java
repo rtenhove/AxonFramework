@@ -16,9 +16,13 @@
 
 package org.axonframework.test.eventscheduler;
 
-import org.axonframework.domain.EventMessage;
+import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.scheduling.ScheduleToken;
-import org.joda.time.DateTime;
+
+import java.time.Instant;
+import java.util.Objects;
+
 
 /**
  * ScheduleToken returned by the StubEventScheduler.
@@ -30,32 +34,32 @@ public class StubScheduleToken implements ScheduleToken, Comparable<StubSchedule
 
     private static final long serialVersionUID = 3763093001261110665L;
 
-    private final DateTime scheduleTime;
-    private final EventMessage event;
+    private final Instant scheduleTime;
+    private final EventMessage<?> event;
     private final int counter;
 
     /**
-     * Initialize the token with the given <code>scheduleTime</code>, <code>event</code> and <code>counter</code>.
+     * Initialize the token with the given {@code scheduleTime}, {@code event} and {@code counter}.
      *
      * @param scheduleTime The time at which to trigger the event
      * @param event        The scheduled event
      * @param counter      A counter used for sorting purposes. When two events are scheduled for the same time, the
      *                     counter decides which comes first.
      */
-    StubScheduleToken(DateTime scheduleTime, EventMessage event, int counter) {
+    StubScheduleToken(Instant scheduleTime, EventMessage event, int counter) {
         this.scheduleTime = scheduleTime;
         this.event = event;
         this.counter = counter;
     }
 
     @Override
-    public DateTime getScheduleTime() {
+    public Instant getScheduleTime() {
         return scheduleTime;
     }
 
     @Override
     public EventMessage getEvent() {
-        return event;
+        return new GenericEventMessage<>(event, () -> scheduleTime);
     }
 
     @Override
@@ -74,21 +78,12 @@ public class StubScheduleToken implements ScheduleToken, Comparable<StubSchedule
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         StubScheduleToken that = (StubScheduleToken) o;
-
-        if (counter != that.counter) {
-            return false;
-        }
-        if (!scheduleTime.equals(that.scheduleTime)) {
-            return false;
-        }
-
-        return true;
+        return counter == that.counter && Objects.equals(scheduleTime, that.scheduleTime);
     }
 
     @Override
     public int hashCode() {
-        return scheduleTime.hashCode();
+        return Objects.hash(scheduleTime, counter);
     }
 }

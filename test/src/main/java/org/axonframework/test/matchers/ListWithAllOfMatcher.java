@@ -22,26 +22,27 @@ import org.hamcrest.Matcher;
 import java.util.List;
 
 /**
- * A matcher that will match if all the given <code>matchers</code> match against at least one item in a given List.
+ * A matcher that will match if all the given {@code matchers} match against at least one item in a given List.
  *
  * @author Allard Buijze
  * @since 1.1
  */
-public class ListWithAllOfMatcher extends ListMatcher {
+public class ListWithAllOfMatcher<T> extends ListMatcher<T> {
 
     /**
-     * Construct a matcher that will return true if all the given <code>matchers</code> match against at least one
+     * Construct a matcher that will return true if all the given {@code matchers} match against at least one
      * item in any given List.
      *
      * @param matchers The matchers that must match against at least one item in the list.
      */
-    public ListWithAllOfMatcher(Matcher... matchers) {
+    @SafeVarargs
+    public ListWithAllOfMatcher(Matcher<T>... matchers) {
         super(matchers);
     }
 
     @Override
-    public boolean matchesList(List<?> items) {
-        for (Matcher matcher : getMatchers()) {
+    public boolean matchesList(List<T> items) {
+        for (Matcher<? super T> matcher : getMatchers()) {
             boolean match = false;
             for (Object item : items) {
                 if (matcher.matches(item)) {

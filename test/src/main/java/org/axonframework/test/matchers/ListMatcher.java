@@ -31,17 +31,18 @@ import java.util.List;
  * @author Allard Buijze
  * @since 1.1
  */
-public abstract class ListMatcher extends BaseMatcher<List<?>> {
+public abstract class ListMatcher<T> extends BaseMatcher<List<T>>  {
 
-    private List<Matcher<?>> failedMatchers = new ArrayList<Matcher<?>>();
-    private final Matcher<?>[] matchers;
+    private final List<Matcher<? super T>> failedMatchers = new ArrayList<>();
+    private final Matcher<? super T>[] matchers;
 
     /**
      * Creates an abstract matcher to match a number of Matchers against Events contained inside a Collection.
      *
      * @param matchers The matchers to match the individual Events in the Collection
      */
-    protected ListMatcher(Matcher<?>... matchers) {
+    @SafeVarargs
+    protected ListMatcher(Matcher<? super T>... matchers) {
         this.matchers = matchers;
     }
 
@@ -52,26 +53,26 @@ public abstract class ListMatcher extends BaseMatcher<List<?>> {
     }
 
     /**
-     * Evaluates the matcher for argument <code>item</code>. The item has been verified to be a list, but the exact
+     * Evaluates the matcher for argument {@code item}. The item has been verified to be a list, but the exact
      * type of contents of a list cannot be verified, due to Erasure of Generic Types.
      *
      * @param item the object against which the matcher is evaluated.
-     * @return <code>true</code> if <code>item</code> matches, otherwise <code>false</code>.
+     * @return {@code true} if {@code item} matches, otherwise {@code false}.
      *
      * @see BaseMatcher
      */
-    protected abstract boolean matchesList(List<?> item);
+    protected abstract boolean matchesList(List<T> item);
 
     /**
-     * Matches all the remaining Matchers in the given <code>matcherIterator</code> against <code>null</code>.
+     * Matches all the remaining Matchers in the given {@code matcherIterator} against {@code null}.
      *
      * @param matcherIterator The iterator potentially containing more matchers
      * @return true if no matchers remain or all matchers succeeded
      */
-    protected boolean matchRemainder(Iterator<Matcher<?>> matcherIterator) {
+    protected boolean matchRemainder(Iterator<Matcher<? super T>> matcherIterator) {
         // evaluate any excess matchers against null
         while (matcherIterator.hasNext()) {
-            Matcher<?> matcher = matcherIterator.next();
+            Matcher<? super T> matcher = matcherIterator.next();
             if (!matcher.matches(null)) {
                 failedMatchers.add(matcher);
                 return false;
@@ -81,11 +82,11 @@ public abstract class ListMatcher extends BaseMatcher<List<?>> {
     }
 
     /**
-     * Report the given <code>matcher</code> as a failing matcher. This will be used in the error reporting.
+     * Report the given {@code matcher} as a failing matcher. This will be used in the error reporting.
      *
      * @param matcher The failing matcher.
      */
-    protected void reportFailed(Matcher matcher) {
+    protected void reportFailed(Matcher<? super T> matcher) {
         failedMatchers.add(matcher);
     }
 
@@ -94,7 +95,7 @@ public abstract class ListMatcher extends BaseMatcher<List<?>> {
      *
      * @return a read-only list of Matchers, in the order they were provided in the constructor
      */
-    protected List<Matcher<?>> getMatchers() {
+    protected List<Matcher<? super T>> getMatchers() {
         return Arrays.asList(matchers);
     }
 

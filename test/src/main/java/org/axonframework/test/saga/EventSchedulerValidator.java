@@ -22,13 +22,15 @@ import org.axonframework.test.eventscheduler.StubEventScheduler;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
+import static org.axonframework.common.DateTimeUtils.formatInstant;
+
 /**
- * Helper class for validating evets scheduled in a given event scheduler.
+ * Helper class for validating events scheduled in a given event scheduler.
  *
  * @author Allard Buijze
  * @since 1.1
@@ -38,7 +40,7 @@ public class EventSchedulerValidator {
     private final StubEventScheduler eventScheduler;
 
     /**
-     * Initializes the validator to validate the state of the given <code>eventScheduler</code>.
+     * Initializes the validator to validate the state of the given {@code eventScheduler}.
      *
      * @param eventScheduler The event scheduler to monitor
      */
@@ -47,26 +49,25 @@ public class EventSchedulerValidator {
     }
 
     /**
-     * Asserts that an event matching the given <code>matcher</code> is scheduled for publication after the given
-     * <code>duration</code>.
+     * Asserts that an event matching the given {@code matcher} is scheduled for publication after the given
+     * {@code duration}.
      *
      * @param duration The delay expected before the event is published
      * @param matcher  The matcher that must match with the event scheduled at the given time
      */
     public void assertScheduledEventMatching(Duration duration, Matcher<?> matcher) {
-        DateTime targetTime = eventScheduler.getCurrentDateTime().plus(duration);
+        Instant targetTime = eventScheduler.getCurrentDateTime().plus(duration);
         assertScheduledEventMatching(targetTime, matcher);
     }
 
     /**
-     * Asserts that an event matching the given <code>matcher</code> is scheduled for publication at the given
-     * <code>scheduledTime</code>.
+     * Asserts that an event matching the given {@code matcher} is scheduled for publication at the given
+     * {@code scheduledTime}.
      *
      * @param scheduledTime the time at which the event should be published
      * @param matcher       The matcher that must match with the event scheduled at the given time
      */
-    public void assertScheduledEventMatching(DateTime scheduledTime,
-                                             Matcher<?> matcher) {
+    public void assertScheduledEventMatching(Instant scheduledTime, Matcher<?> matcher) {
 
         List<ScheduledItem> schedule = eventScheduler.getScheduledItems();
         for (ScheduledItem item : schedule) {
@@ -89,10 +90,10 @@ public class EventSchedulerValidator {
         }
         for (ScheduledItem item : scheduledItems) {
             description.appendText("\n<")
-                       .appendText(item.getEvent().toString())
-                       .appendText("> at <")
-                       .appendText(item.getScheduleTime().toString())
-                       .appendText(">");
+                    .appendText(item.getEvent().toString())
+                    .appendText("> at <")
+                    .appendText(formatInstant(item.getScheduleTime()))
+                    .appendText(">");
         }
     }
 

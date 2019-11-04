@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2010-2014. Axon Framework
+ * Copyright (c) 2010-2018. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,29 +16,26 @@
 
 package org.axonframework.test.utils;
 
-import org.axonframework.common.ReflectionUtils;
-import org.axonframework.saga.ResourceInjector;
-import org.axonframework.saga.Saga;
-import org.axonframework.test.FixtureExecutionException;
+import org.axonframework.modelling.saga.AbstractResourceInjector;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import static org.axonframework.common.ReflectionUtils.methodsOf;
+import java.util.Optional;
 
 /**
- * Resource injector that uses setter methods to inject resources. All methods starting with "set" are evaluated. If
- * that method has a single parameter, a Resource of that type is injected into it, if present.
+ * Resource injector that uses setter methods to inject resources. All methods and fields annotated with
+ * {@code @Inject} are evaluated. If that method has a single parameter, a Resource of that type
+ * is injected into it, if present.
+ * <p>
+ * Unlike the SimpleResourceInjector, changes in the provided {@link Iterable} are reflected in this injector.
  *
  * @author Allard Buijze
  * @since 1.1
  */
-public class AutowiredResourceInjector implements ResourceInjector {
+public class AutowiredResourceInjector extends AbstractResourceInjector {
 
-    private Iterable<?> resources;
+    private final Iterable<?> resources;
 
     /**
-     * Initializes the resource injector to inject to given <code>resources</code>.
+     * Initializes the resource injector to inject to given {@code resources}.
      *
      * @param resources The resources to inject
      */
@@ -47,31 +44,13 @@ public class AutowiredResourceInjector implements ResourceInjector {
     }
 
     @Override
-    public void injectResources(Saga saga) {
-        for (Method method : methodsOf(saga.getClass())) {
-            if (isSetter(method)) {
-                Class<?> requiredType = method.getParameterTypes()[0];
-                for (Object resource : resources) {
-                    if (requiredType.isInstance(resource)) {
-                        injectResource(saga, method, resource);
-                    }
-                }
+    protected <R> Optional<R> findResource(Class<R> requiredType) {
+        for (Object resource : resources) {
+            if (requiredType.isInstance(resource)) {
+                return Optional.of(requiredType.cast(resource));
             }
         }
+        return Optional.empty();
     }
 
-    private void injectResource(Saga saga, Method setterMethod, Object resource) {
-        try {
-            ReflectionUtils.ensureAccessible(setterMethod);
-            setterMethod.invoke(saga, resource);
-        } catch (IllegalAccessException e) {
-            throw new FixtureExecutionException("An exception occurred while trying to inject a resource", e);
-        } catch (InvocationTargetException e) {
-            throw new FixtureExecutionException("An exception occurred while trying to inject a resource", e);
-        }
-    }
-
-    private boolean isSetter(Method method) {
-        return method.getParameterTypes().length == 1 && method.getName().startsWith("set");
-    }
 }

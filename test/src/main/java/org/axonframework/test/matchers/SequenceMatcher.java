@@ -23,34 +23,35 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A matcher that will match if all the given <code>matchers</code> each match against an item that the previous
+ * A matcher that will match if all the given {@code matchers} each match against an item that the previous
  * matcher matched against. That means the second matcher should match an item that follow the item that the first
  * matcher matched.
  * <p/>
  * If the number of items is larger than the number of matchers, the excess items are not evaluated. Use {@link
  * Matchers#exactSequenceOf(org.hamcrest.Matcher[])} to match the sequence exactly. If the last item of the list
- * has been evaluated, and Matchers still remain, they are evaluated against a <code>null</code> value.
+ * has been evaluated, and Matchers still remain, they are evaluated against a {@code null} value.
  *
  * @author Allard Buijze
  * @since 1.1
  */
-public class SequenceMatcher extends ListMatcher {
+public class SequenceMatcher<T> extends ListMatcher<T> {
 
     /**
-     * Construct a matcher that will return true if all the given <code>matchers</code> match against an item
+     * Construct a matcher that will return true if all the given {@code matchers} match against an item
      * positioned after the item that the previous matcher matched against.
      *
      * @param matchers The matchers that must match against at least one item in the list.
      */
-    public SequenceMatcher(Matcher<?>... matchers) {
+    @SafeVarargs
+    public SequenceMatcher(Matcher<? super T>... matchers) {
         super(matchers);
     }
 
     @Override
-    public boolean matchesList(List<?> items) {
+    public boolean matchesList(List<T> items) {
         Iterator<?> itemIterator = items.iterator();
-        Iterator<Matcher<?>> matcherIterator = getMatchers().iterator();
-        Matcher currentMatcher = null;
+        Iterator<Matcher<? super T>> matcherIterator = getMatchers().iterator();
+        Matcher<? super T> currentMatcher = null;
         if (matcherIterator.hasNext()) {
             currentMatcher = matcherIterator.next();
         }

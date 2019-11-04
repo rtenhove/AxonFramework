@@ -20,7 +20,7 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Matcher that will match an Object if all the fields on that Object contain values equal to the same field in the
@@ -33,18 +33,31 @@ import java.util.Arrays;
 public class EqualFieldsMatcher<T> extends BaseMatcher<T> {
 
     private final T expected;
+    private final FieldFilter filter;
     private Field failedField;
     private Object failedFieldExpectedValue;
     private Object failedFieldActualValue;
 
     /**
      * Initializes an EqualFieldsMatcher that will match an object with equal properties as the given
-     * <code>expected</code> object.
+     * {@code expected} object.
      *
      * @param expected The expected object
      */
     public EqualFieldsMatcher(T expected) {
+        this(expected, AllFieldsFilter.instance());
+    }
+
+    /**
+     * Initializes an EqualFieldsMatcher that will match an object with equal properties as the given
+     * {@code expected} object.
+     *
+     * @param expected The expected object
+     * @param filter   The filter describing the fields to include in the comparison
+     */
+    public EqualFieldsMatcher(T expected, FieldFilter filter) {
         this.expected = expected;
+        this.filter = filter;
     }
 
     @SuppressWarnings({"unchecked"})
@@ -61,26 +74,20 @@ public class EqualFieldsMatcher<T> extends BaseMatcher<T> {
     private boolean fieldsMatch(Class<?> aClass, Object expectedValue, Object actual) {
         boolean match = true;
         for (Field field : aClass.getDeclaredFields()) {
-            field.setAccessible(true);
-            try {
-                Object expectedFieldValue = field.get(expectedValue);
-                Object actualFieldValue = field.get(actual);
-                if (expectedFieldValue != null && actualFieldValue != null && expectedFieldValue.getClass().isArray()) {
-                    if (!Arrays.deepEquals(new Object[]{expectedFieldValue}, new Object[]{actualFieldValue})) {
+            if (filter.accept(field)) {
+                field.setAccessible(true);
+                try {
+                    Object expectedFieldValue = field.get(expectedValue);
+                    Object actualFieldValue = field.get(actual);
+                    if (!Objects.deepEquals(expectedFieldValue, actualFieldValue)) {
                         failedField = field;
                         failedFieldExpectedValue = expectedFieldValue;
                         failedFieldActualValue = actualFieldValue;
                         return false;
                     }
-                } else if ((expectedFieldValue != null && !expectedFieldValue.equals(actualFieldValue))
-                        || (expectedFieldValue == null && actualFieldValue != null)) {
-                    failedField = field;
-                    failedFieldExpectedValue = expectedFieldValue;
-                    failedFieldActualValue = actualFieldValue;
-                    return false;
+                } catch (IllegalAccessException e) {
+                    throw new MatcherExecutionException("Could not confirm object equality due to an exception", e);
                 }
-            } catch (IllegalAccessException e) {
-                throw new MatcherExecutionException("Could not confirm object equality due to an exception", e);
             }
         }
         if (aClass.getSuperclass() != Object.class) {

@@ -16,13 +16,11 @@
 
 package org.axonframework.test.utils;
 
-import org.axonframework.commandhandling.CommandCallback;
-import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.commandhandling.CommandMessage;
 import org.axonframework.commandhandling.GenericCommandMessage;
-import org.axonframework.domain.MetaData;
-import org.axonframework.unitofwork.UnitOfWork;
-import org.junit.*;
+import org.axonframework.messaging.MessageHandler;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.List;
 
@@ -36,24 +34,21 @@ public class RecordingCommandBusTest {
     private RecordingCommandBus testSubject;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         testSubject = new RecordingCommandBus();
     }
 
     @Test
     public void testPublishCommand() {
         testSubject.dispatch(GenericCommandMessage.asCommandMessage("First"));
-        testSubject.dispatch(GenericCommandMessage.asCommandMessage("Second"), new CommandCallback<Object>() {
-            @Override
-            public void onSuccess(Object result) {
-                assertNull("Expected default callback behavior to invoke onSuccess(null)", result);
-            }
-
-            @Override
-            public void onFailure(Throwable cause) {
-                fail("Didn't expect callack to be invoked");
-            }
-        });
+        testSubject.dispatch(GenericCommandMessage.asCommandMessage("Second"),
+                             (commandMessage, commandResultMessage) -> {
+                                 if (commandResultMessage.isExceptional()) {
+                                     fail("Didn't expect handling to fail");
+                                 }
+                                 assertNull("Expected default callback behavior to invoke onResult(null)",
+                                            commandResultMessage.getPayload());
+                             });
         //noinspection AssertEqualsBetweenInconvertibleTypes
         List<CommandMessage<?>> actual = testSubject.getDispatchedCommands();
         assertEquals(2, actual.size());
@@ -63,24 +58,15 @@ public class RecordingCommandBusTest {
 
     @Test
     public void testPublishCommandWithCallbackBehavior() {
-        testSubject.setCallbackBehavior(new CallbackBehavior() {
-            @Override
-            public Object handle(Object commandPayload, MetaData commandMetaData) throws Throwable {
-                return "callbackResult";
-            }
-        });
+        testSubject.setCallbackBehavior((commandPayload, commandMetaData) -> "callbackResult");
         testSubject.dispatch(GenericCommandMessage.asCommandMessage("First"));
-        testSubject.dispatch(GenericCommandMessage.asCommandMessage("Second"), new CommandCallback<Object>() {
-            @Override
-            public void onSuccess(Object result) {
-                assertEquals("callbackResult", result);
-            }
-
-            @Override
-            public void onFailure(Throwable cause) {
-                fail("Didn't expect callack to be invoked");
-            }
-        });
+        testSubject.dispatch(GenericCommandMessage.asCommandMessage("Second"),
+                             (commandMessage, commandResultMessage) -> {
+                                 if (commandResultMessage.isExceptional()) {
+                                    fail("Didn't expect handling to fail");
+                                 }
+                                 assertEquals("callbackResult", commandResultMessage.getPayload());
+                             });
         //noinspection AssertEqualsBetweenInconvertibleTypes
         List<CommandMessage<?>> actual = testSubject.getDispatchedCommands();
         assertEquals(2, actual.size());
@@ -90,12 +76,9 @@ public class RecordingCommandBusTest {
 
     @Test
     public void testRegisterHandler() {
-        CommandHandler<String> handler = new CommandHandler<String>() {
-            @Override
-            public Object handle(CommandMessage<String> command, UnitOfWork unitOfWork) throws Throwable {
-                fail("Did not expect handler to be invoked");
-                return null;
-            }
+        MessageHandler<? super CommandMessage<?>> handler = command -> {
+            fail("Did not expect handler to be invoked");
+            return null;
         };
         testSubject.subscribe(String.class.getName(), handler);
         assertTrue(testSubject.isSubscribed(handler));

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  ~ Copyright (c) 2010-2012. Axon Framework
+  ~ Copyright (c) 2010-2018. Axon Framework
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
   ~ You may obtain a copy of the License at
   ~
-  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~    http://www.apache.org/licenses/LICENSE-2.0
   ~
   ~ Unless required by applicable law or agreed to in writing, software
   ~ distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,14 +21,14 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        ">
 
-    <bean id="benchMark" class="org.axonframework.integrationtests.eventstore.benchmark.mongo.MongoEventStoreBenchMark">
+    <bean id="benchMark" class="org.axonframework.integrationtests.eventsourcing.eventstore.benchmark.mongo.MongoEventStoreBenchMark">
         <constructor-arg index="0" ref="mongoDb"/>
         <constructor-arg index="1" ref="eventStore"/>
     </bean>
 
-    <bean id="eventStore" class="org.axonframework.eventstore.mongo.MongoEventStore">
+    <bean id="eventStore" class="org.axonframework.mongo.eventsourcing.eventstore.MongoEventStorageEngine">
         <constructor-arg>
-            <bean class="org.axonframework.eventstore.mongo.DefaultMongoTemplate">
+            <bean class="org.axonframework.mongo.eventsourcing.eventstore.DefaultMongoTemplate">
                 <constructor-arg ref="mongoDb"/>
             </bean>
         </constructor-arg>
@@ -37,7 +37,7 @@
     <!-- Infrastructure configuration -->
     <bean id="mongoDb" class="com.mongodb.Mongo" factory-bean="mongoFactoryBean" factory-method="createMongo"/>
 
-    <bean id="mongoFactoryBean" class="org.axonframework.eventstore.mongo.MongoFactory">
+    <bean id="mongoFactoryBean" class="org.axonframework.mongo.eventsourcing.eventstore.MongoFactory">
         <property name="mongoOptions">
             <bean class="com.mongodb.MongoOptions" factory-bean="mongoOptionsFactory"
                   factory-method="createMongoOptions"/>
@@ -52,7 +52,7 @@
         </property>
     </bean>
 
-    <bean id="mongoOptionsFactory" class="org.axonframework.eventstore.mongo.MongoOptionsFactory">
+    <bean id="mongoOptionsFactory" class="org.axonframework.mongo.eventsourcing.eventstore.MongoOptionsFactory">
         <property name="connectionsPerHost" value="100"/>
         <property name="threadsAllowedToBlockForConnectionMultiplier" value="20"/>
     </bean>

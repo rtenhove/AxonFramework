@@ -16,19 +16,16 @@
 
 package org.axonframework.test.eventscheduler;
 
-import org.axonframework.domain.EventMessage;
-import org.axonframework.domain.GenericEventMessage;
+import org.axonframework.eventhandling.EventMessage;
+import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.scheduling.EventScheduler;
 import org.axonframework.eventhandling.scheduling.ScheduleToken;
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.ReadableInstant;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.NoSuchElementException;
-import java.util.TreeSet;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -44,9 +41,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class StubEventScheduler implements EventScheduler {
 
-    private final NavigableSet<StubScheduleToken> scheduledEvents = new TreeSet<StubScheduleToken>();
+    private final NavigableSet<StubScheduleToken> scheduledEvents = new TreeSet<>();
     private final AtomicInteger counter = new AtomicInteger(0);
-    private DateTime currentDateTime;
+    private Instant currentDateTime;
 
     /**
      * Creates an instance of the StubScheduler that uses the current date time as its conceptual "current time".
@@ -54,22 +51,37 @@ public class StubEventScheduler implements EventScheduler {
      * the real "current time", the time of the Event Scheduler is fixed.
      */
     public StubEventScheduler() {
-        this(null);
+        this(ZonedDateTime.now());
     }
 
     /**
-     * Creates an instance of the StubScheduler that uses the given <code>currentDateTime</code> as its conceptual
+     * Creates an instance of the StubScheduler that uses the given {@code currentDateTime} as its conceptual
      * "current time".
      *
      * @param currentDateTime The instant to use as current Date and Time
      */
 
-    public StubEventScheduler(ReadableInstant currentDateTime) {
-        this.currentDateTime = new DateTime(currentDateTime);
+    public StubEventScheduler(TemporalAccessor currentDateTime) {
+        this.currentDateTime = Instant.from(currentDateTime);
     }
 
+    /**
+     * Resets the initial "current time" of this SubEventScheduler. Must be called before any events are scheduled
+     *
+     * @param currentDateTime The instant to use as the current Date and Time
+     * @throws IllegalStateException when calling this method after events are scheduled
+     */
+    public void initializeAt(TemporalAccessor currentDateTime) {
+        if (!scheduledEvents.isEmpty()) {
+            throw new IllegalStateException("Initializing the scheduler at a specific dateTime must take place "
+                                                    + "before any events are scheduled");
+        }
+        this.currentDateTime = Instant.from(currentDateTime);
+    }
+
+
     @Override
-    public ScheduleToken schedule(DateTime triggerDateTime, Object event) {
+    public ScheduleToken schedule(Instant triggerDateTime, Object event) {
         EventMessage eventMessage = GenericEventMessage.asEventMessage(event);
         StubScheduleToken token = new StubScheduleToken(triggerDateTime, eventMessage, counter.getAndIncrement());
         scheduledEvents.add(token);
@@ -79,7 +91,7 @@ public class StubEventScheduler implements EventScheduler {
     @Override
     public ScheduleToken schedule(Duration triggerDuration, Object event) {
         EventMessage eventMessage = GenericEventMessage.asEventMessage(event);
-        DateTime scheduleTime = currentDateTime.plus(triggerDuration);
+        Instant scheduleTime = currentDateTime.plus(triggerDuration);
         StubScheduleToken token = new StubScheduleToken(scheduleTime, eventMessage, counter.getAndIncrement());
         scheduledEvents.add(token);
         return token;
@@ -100,7 +112,7 @@ public class StubEventScheduler implements EventScheduler {
      * @return a view of all the scheduled Events at the time this method is called
      */
     public List<ScheduledItem> getScheduledItems() {
-        return new ArrayList<ScheduledItem>(scheduledEvents);
+        return new ArrayList<>(scheduledEvents);
     }
 
     /**
@@ -108,7 +120,7 @@ public class StubEventScheduler implements EventScheduler {
      *
      * @return the "Current Date Time" as used by the scheduler
      */
-    public DateTime getCurrentDateTime() {
+    public Instant getCurrentDateTime() {
         return currentDateTime;
     }
 
@@ -120,10 +132,10 @@ public class StubEventScheduler implements EventScheduler {
      * @return the first event scheduled
      */
     public EventMessage advanceToNextTrigger() {
-        if (scheduledEvents.isEmpty()) {
+        StubScheduleToken nextItem = scheduledEvents.pollFirst();
+        if (nextItem == null) {
             throw new NoSuchElementException("There are no scheduled events");
         }
-        StubScheduleToken nextItem = scheduledEvents.pollFirst();
         if (nextItem.getScheduleTime().isAfter(currentDateTime)) {
             currentDateTime = nextItem.getScheduleTime();
         }
@@ -131,31 +143,29 @@ public class StubEventScheduler implements EventScheduler {
     }
 
     /**
-     * Advance time to the given <code>newDateTime</code> and returns all events scheduled for publication until that
-     * time.
+     * Advance time to the given {@code newDateTime} and invokes the given {@code eventConsumer} for each
+     * event scheduled for publication until that time.
      *
-     * @param newDateTime The time to advance the "current time" of the scheduler to
-     * @return A list of Events scheduled for publication on or before the new time
+     * @param newDateTime   The time to advance the "current time" of the scheduler to
+     * @param eventConsumer The function to invoke for each event to trigger
      */
-    public List<EventMessage> advanceTime(DateTime newDateTime) {
-        List<EventMessage> triggeredEvents = new ArrayList<EventMessage>();
+    public void advanceTimeTo(Instant newDateTime, EventConsumer<EventMessage<?>> eventConsumer) {
         while (!scheduledEvents.isEmpty() && !scheduledEvents.first().getScheduleTime().isAfter(newDateTime)) {
-            triggeredEvents.add(advanceToNextTrigger());
+            eventConsumer.accept(advanceToNextTrigger());
         }
         if (newDateTime.isAfter(currentDateTime)) {
             currentDateTime = newDateTime;
         }
-        return triggeredEvents;
     }
 
     /**
-     * Advance time by the given <code>duration</code> and returns all events scheduled for publication until that
-     * time.
+     * Advance time by the given {@code duration} and invokes the given {@code eventConsumer} for each
+     * event scheduled for publication until that time.
      *
-     * @param duration The amount of time to advance the "current time" of the scheduler with
-     * @return A list of Events scheduled for publication on or before the new time
+     * @param duration      The amount of time to advance the "current time" of the scheduler with
+     * @param eventConsumer The function to invoke for each event to trigger
      */
-    public List<EventMessage> advanceTime(Duration duration) {
-        return advanceTime(currentDateTime.plus(duration));
+    public void advanceTimeBy(Duration duration, EventConsumer<EventMessage<?>> eventConsumer) {
+        advanceTimeTo(currentDateTime.plus(duration), eventConsumer);
     }
 }

@@ -16,13 +16,14 @@
 
 package org.axonframework.test.matchers;
 
-import org.axonframework.domain.EventMessage;
+import org.axonframework.eventhandling.EventMessage;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
-import org.junit.*;
-import org.mockito.invocation.*;
-import org.mockito.stubbing.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,10 +37,10 @@ import static org.mockito.Mockito.*;
  */
 public class ListWithAnyOfMatcherTest {
 
-    private Matcher<EventMessage> mockMatcher1;
-    private Matcher<EventMessage> mockMatcher2;
-    private Matcher<EventMessage> mockMatcher3;
-    private Matcher<List<?>> testSubject;
+    private Matcher<EventMessage<?>> mockMatcher1;
+    private Matcher<EventMessage<?>> mockMatcher2;
+    private Matcher<EventMessage<?>> mockMatcher3;
+    private Matcher<List<EventMessage<?>>> testSubject;
     private StubEvent stubEvent1;
     private StubEvent stubEvent2;
 
@@ -155,7 +156,7 @@ public class ListWithAnyOfMatcherTest {
         }
 
         @Override
-        public Object answer(InvocationOnMock invocation) throws Throwable {
+        public Object answer(InvocationOnMock invocation) {
             Description descriptionParameter = (Description) invocation.getArguments()[0];
             descriptionParameter.appendText(this.description);
             return Void.class;

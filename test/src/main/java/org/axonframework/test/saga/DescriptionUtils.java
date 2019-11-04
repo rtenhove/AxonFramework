@@ -32,12 +32,12 @@ public abstract class DescriptionUtils {
     }
 
     /**
-     * Describe the contents of the given <code>list</code> in the given <code>description</code>.
+     * Describe the contents of the given {@code list} in the given {@code description}.
      *
      * @param list        The list to describe
      * @param description The description to describe to
      */
-    static void describe(List<?> list, Description description) {
+    public static void describe(List<?> list, Description description) {
         int counter = 0;
         description.appendText("List with ");
         for (Object item : list) {
